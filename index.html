@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GlowBoard - 프리미엄 LED 전광판</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            mint: '#14B8A6',
+                            pink: '#EC4899',
+                            darkbg: '#0B0F19',
+                            carddark: '#161F30',
+                        }
+                    },
+                    fontFamily: {
+                        gothic: ['"Noto Sans KR"', 'sans-serif'],
+                        myeongjo: ['"Nanum Myeongjo"', 'serif'],
+                        cute: ['"Gaegu"', 'cursive'],
+                        neon: ['"Orbitron"', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Myeongjo:wght@700;800&family=Noto+Sans+KR:wght@300;400;700;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        /* Custom scrollbars and range inputs */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* Range input premium style */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+            background: #E5E7EB;
+            border-radius: 9999px;
+            height: 6px;
+        }
+        .dark input[type="range"]::-webkit-slider-runnable-track {
+            background: #374151;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            margin-top: -5px;
+            background-color: #14B8A6;
+            border-radius: 9999px;
+            height: 16px;
+            width: 16px;
+            transition: transform 0.1s;
+        }
+        input[type="range"]::-webkit-slider-thumb:active {
+            transform: scale(1.3);
+        }
+
+        /* LED Board scrolling animations */
+        @keyframes marquee-left {
+            0% { transform: translate3d(100%, 0, 0); }
+            100% { transform: translate3d(-100%, 0, 0); }
+        }
+        @keyframes marquee-right {
+            0% { transform: translate3d(-100%, 0, 0); }
+            100% { transform: translate3d(100%, 0, 0); }
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.1; }
+        }
+
+        .animate-marquee-left {
+            animation: marquee-left var(--speed-duration, 6s) linear infinite;
+        }
+        .animate-marquee-right {
+            animation: marquee-right var(--speed-duration, 6s) linear infinite;
+        }
+        .animate-blink {
+            animation: blink 0.8s infinite;
+        }
+
+        /* Fluid Landscape Sim on Mobile Orientation */
+        @media (orientation: portrait) {
+            .landscape-force {
+                transform: rotate(90deg);
+                transform-origin: center;
+                width: 100vh;
+                height: 100vw;
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                margin-top: -50vw;
+                margin-left: -50vh;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 dark:bg-brand-darkbg dark:text-gray-100 transition-colors duration-300 font-gothic overflow-x-hidden w-full min-h-screen flex flex-col items-center justify-center">
+
+    <!-- App Shell Wrapper (Imitates premium mobile layout on desktop, full width on mobile) -->
+    <div id="app-container" class="relative w-full max-w-md h-screen max-h-[900px] md:h-[844px] md:rounded-[40px] md:shadow-2xl md:border-8 md:border-gray-200 dark:md:border-gray-800 flex flex-col overflow-hidden bg-white dark:bg-brand-darkbg transition-all duration-300">
+        
+        <!-- ================= PREVIEW AREA (Top 40%) ================= -->
+        <div class="relative h-[38%] bg-black flex flex-col justify-between overflow-hidden shadow-inner select-none">
+            <!-- Header Utility Bar -->
+            <div class="z-10 flex items-center justify-between px-5 pt-4 pb-2 bg-gradient-to-b from-black/80 to-transparent">
+                <div class="flex items-center space-x-2">
+                    <span class="w-2 h-2 rounded-full bg-brand-mint animate-ping"></span>
+                    <span class="text-xs font-semibold tracking-widest text-gray-400">LIVE PREVIEW</span>
+                </div>
+                <!-- Theme Toggle Button -->
+                <button onclick="toggleTheme()" class="p-2 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white focus:outline-none" aria-label="화면 모드 변경">
+                    <!-- Sun Icon (Visible in Dark Mode) -->
+                    <svg id="sun-icon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707m12.728 12.728A9 9 0 115.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                    <!-- Moon Icon (Visible in Light Mode) -->
+                    <svg id="moon-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                </button>
+            </div>
+
+            <!-- LED Display Container -->
+            <div id="preview-led-board" class="absolute inset-0 flex items-center justify-center overflow-hidden transition-colors duration-300" style="background-color: #000000;">
+                <!-- Moving Text Outer Wrapper -->
+                <div class="w-full relative overflow-hidden flex items-center">
+                    <span id="preview-text" class="whitespace-nowrap text-3xl font-bold tracking-wider select-none px-4 inline-block transform transition-all">
+                        행복 가득한 날 ✨
+                    </span>
+                </div>
+            </div>
+
+            <!-- Bottom Indicator -->
+            <div class="z-10 flex justify-between px-5 pb-3 pt-2 bg-gradient-to-t from-black/80 to-transparent text-[10px] text-gray-400">
+                <span>PREVIEW MODE</span>
+                <span id="status-badge" class="text-brand-mint font-semibold">FLOWING LEFT</span>
+            </div>
+        </div>
+
+        <!-- ================= CONTROLLERS AREA (Bottom 60%) ================= -->
+        <div class="flex-1 bg-gray-50 dark:bg-brand-darkbg px-5 pt-5 pb-6 overflow-y-auto no-scrollbar flex flex-col justify-between">
+            <div class="space-y-6">
+                <!-- 1. Text Input Field -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">응원 메시지 입력</label>
+                    <div class="relative flex items-center">
+                        <input type="text" id="input-message" maxlength="30" value="행복 가득한 날 ✨" placeholder="메시지를 입력하세요" 
+                            class="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-brand-carddark text-gray-900 dark:text-white font-medium focus:ring-2 focus:ring-brand-mint focus:border-transparent outline-none transition-all shadow-sm text-sm"
+                            oninput="updateText(this.value)">
+                        <button onclick="clearInput()" class="absolute right-3 p-1 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors" aria-label="지우기">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. Font Style Select (Chips UI) -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">서체 스타일</label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <!-- Gothic -->
+                        <button onclick="setFont('gothic')" id="font-btn-gothic" class="font-chip border-2 py-2 px-1 rounded-xl text-xs font-bold transition-all text-center focus:outline-none bg-white dark:bg-brand-carddark border-brand-mint text-brand-mint shadow-md">
+                            고딕
+                        </button>
+                        <!-- Myeongjo -->
+                        <button onclick="setFont('myeongjo')" id="font-btn-myeongjo" class="font-chip border-2 py-2 px-1 rounded-xl text-xs font-medium font-myeongjo transition-all text-center focus:outline-none bg-white dark:bg-brand-carddark border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-700">
+                            명조
+                        </button>
+                        <!-- Cute -->
+                        <button onclick="setFont('cute')" id="font-btn-cute" class="font-chip border-2 py-2 px-1 rounded-xl text-xs font-bold font-cute transition-all text-center focus:outline-none bg-white dark:bg-brand-carddark border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-700">
+                            귀염
+                        </button>
+                        <!-- Neon/Tech -->
+                        <button onclick="setFont('neon')" id="font-btn-neon" class="font-chip border-2 py-2 px-1 rounded-xl text-xs font-bold font-neon transition-all text-center focus:outline-none bg-white dark:bg-brand-carddark border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-700">
+                            네온
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. Dynamic Quick Presets -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">원치 프리셋 테마</label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button onclick="applyPreset('mintParty')" class="py-1.5 px-1 rounded-lg text-[10px] font-bold border border-emerald-500/30 bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 hover:bg-emerald-500/20 active:scale-95 transition-all">민트파티</button>
+                        <button onclick="applyPreset('cyberpink')" class="py-1.5 px-1 rounded-lg text-[10px] font-bold border border-pink-500/30 bg-pink-500/10 text-pink-500 dark:text-pink-400 hover:bg-pink-500/20 active:scale-95 transition-all">사이버핑크</button>
+                        <button onclick="applyPreset('sweetYellow')" class="py-1.5 px-1 rounded-lg text-[10px] font-bold border border-yellow-500/30 bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-500/20 active:scale-95 transition-all">스윗옐로우</button>
+                        <button onclick="applyPreset('classicRed')" class="py-1.5 px-1 rounded-lg text-[10px] font-bold border border-red-500/30 bg-red-500/10 text-red-500 dark:text-red-400 hover:bg-red-500/20 active:scale-95 transition-all">클래식레드</button>
+                    </div>
+                </div>
+
+                <!-- 4. Color Pickers (Advanced Custom Swatches) -->
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Text Color Palette -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">글자 색상</label>
+                        <div class="flex items-center space-x-2 bg-white dark:bg-brand-carddark p-2 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+                            <input type="color" id="text-color-picker" value="#14B8A6" oninput="setTextColor(this.value)" class="w-8 h-8 rounded-full border-0 cursor-pointer p-0 bg-transparent">
+                            <span id="text-color-val" class="text-xs font-mono font-medium text-gray-500">#14B8A6</span>
+                        </div>
+                    </div>
+                    <!-- Background Color Palette -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">배경 색상</label>
+                        <div class="flex items-center space-x-2 bg-white dark:bg-brand-carddark p-2 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+                            <input type="color" id="bg-color-picker" value="#000000" oninput="setBgColor(this.value)" class="w-8 h-8 rounded-full border-0 cursor-pointer p-0 bg-transparent">
+                            <span id="bg-color-val" class="text-xs font-mono font-medium text-gray-500">#000000</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. Movement & Speed & Effects -->
+                <div class="space-y-4">
+                    <!-- Effect Switch Toggles -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <!-- Neon Glow Toggle -->
+                        <button onclick="toggleNeonGlow()" id="btn-neon-glow" class="flex items-center justify-between px-4 py-3 rounded-2xl border bg-white dark:bg-brand-carddark border-brand-mint text-brand-mint dark:border-brand-mint dark:text-brand-mint transition-all focus:outline-none">
+                            <span class="text-xs font-bold">네온 글로우 효과</span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-brand-mint shadow-[0_0_8px_#14B8A6] transition-all" id="neon-glow-dot"></span>
+                        </button>
+                        <!-- Blink Toggle -->
+                        <button onclick="toggleBlink()" id="btn-blink" class="flex items-center justify-between px-4 py-3 rounded-2xl border bg-white dark:bg-brand-carddark border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 transition-all focus:outline-none">
+                            <span class="text-xs font-bold">깜빡이 효과</span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-gray-300 dark:bg-gray-600 transition-all" id="blink-dot"></span>
+                        </button>
+                    </div>
+
+                    <!-- Direction Segmented Picker -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">이동 방향</label>
+                        <div class="flex p-1 bg-gray-200/60 dark:bg-gray-800 rounded-xl">
+                            <button onclick="setDirection('left')" id="dir-btn-left" class="dir-btn flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-center focus:outline-none bg-white dark:bg-brand-carddark text-gray-900 dark:text-white shadow">
+                                왼쪽으로
+                            </button>
+                            <button onclick="setDirection('static')" id="dir-btn-static" class="dir-btn flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-center focus:outline-none text-gray-500 dark:text-gray-400 hover:text-gray-700">
+                                고정
+                            </button>
+                            <button onclick="setDirection('right')" id="dir-btn-right" class="dir-btn flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-center focus:outline-none text-gray-500 dark:text-gray-400 hover:text-gray-700">
+                                오른쪽으로
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Speed Controller -->
+                    <div id="speed-controller-wrapper">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">속도 조절</label>
+                            <span id="speed-label" class="text-xs font-bold text-brand-mint">5</span>
+                        </div>
+                        <input type="range" id="speed-range" min="1" max="10" value="5" class="w-full h-2" oninput="setSpeed(this.value)">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Start Fullscreen Button -->
+            <div class="mt-6">
+                <button onclick="startFullscreen()" class="w-full py-4 rounded-2xl bg-brand-mint text-white text-base font-bold shadow-[0_4px_20px_rgba(20,184,166,0.3)] hover:brightness-105 hover:shadow-[0_6px_25px_rgba(20,184,166,0.4)] active:scale-[0.98] transition-all flex items-center justify-center space-x-2 focus:outline-none">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+                    <span>전화면 시작</span>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ================= FULLSCREEN MODE LAYER ================= -->
+    <div id="fullscreen-layer" class="hidden fixed inset-0 z-50 bg-black flex items-center justify-center cursor-pointer select-none">
+        
+        <!-- Interactive full screen LED Display -->
+        <div id="fullscreen-led-container" class="w-full h-full flex items-center justify-center overflow-hidden">
+            <!-- Fullscreen Moving Text -->
+            <div class="w-full relative overflow-hidden flex items-center">
+                <span id="fullscreen-text" class="whitespace-nowrap font-bold tracking-widest leading-none block absolute transform px-8">
+                    행복 가득한 날 ✨
+                </span>
+            </div>
+        </div>
+
+        <!-- Floating UX Helper (Fades out after 3 seconds) -->
+        <div id="exit-helper" class="absolute bottom-8 left-1/2 transform -translate-x-1/2 px-4 py-2.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-white text-xs font-medium tracking-wide flex items-center space-x-2 shadow-xl opacity-0 transition-opacity duration-500 pointer-events-none">
+            <svg class="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            <span>화면을 탭하여 편집기로 돌아가기</span>
+        </div>
+    </div>
+
+    <!-- ================= CORE APP SCRIPT ================= -->
+    <script>
+        // Global State
+        const state = {
+            text: "행복 가득한 날 ✨",
+            font: "gothic", // gothic, myeongjo, cute, neon
+            textColor: "#14B8A6",
+            bgColor: "#000000",
+            direction: "left", // left, static, right
+            speed: 5, // 1 to 10
+            blink: false,
+            neon: true,
+            darkMode: true
+        };
+
+        // UI Element References
+        const elements = {
+            appContainer: document.getElementById('app-container'),
+            previewLedBoard: document.getElementById('preview-led-board'),
+            previewText: document.getElementById('preview-text'),
+            inputText: document.getElementById('input-message'),
+            statusBadge: document.getElementById('status-badge'),
+            textColorPicker: document.getElementById('text-color-picker'),
+            textColorVal: document.getElementById('text-color-val'),
+            bgColorPicker: document.getElementById('bg-color-picker'),
+            bgColorVal: document.getElementById('bg-color-val'),
+            speedRange: document.getElementById('speed-range'),
+            speedLabel: document.getElementById('speed-label'),
+            speedControllerWrapper: document.getElementById('speed-controller-wrapper'),
+            
+            // Buttons
+            btnNeonGlow: document.getElementById('btn-neon-glow'),
+            neonGlowDot: document.getElementById('neon-glow-dot'),
+            btnBlink: document.getElementById('btn-blink'),
+            blinkDot: document.getElementById('blink-dot'),
+            
+            // Fullscreen Elements
+            fullscreenLayer: document.getElementById('fullscreen-layer'),
+            fullscreenLedContainer: document.getElementById('fullscreen-led-container'),
+            fullscreenText: document.getElementById('fullscreen-text'),
+            exitHelper: document.getElementById('exit-helper')
+        };
+
+        // Theme Presets Database
+        const PRESETS = {
+            mintParty: { text: "MINT PARTY 🌿", font: "neon", textColor: "#10B981", bgColor: "#051610", neon: true, blink: false, direction: "left", speed: 6 },
+            cyberpink: { text: "CYBERPUNK 🎆", font: "neon", textColor: "#F43F5E", bgColor: "#0F0210", neon: true, blink: true, direction: "right", speed: 8 },
+            sweetYellow: { text: "Happy Day! 🎂", font: "cute", textColor: "#FBBF24", bgColor: "#1E1B4B", neon: true, blink: false, direction: "left", speed: 4 },
+            classicRed: { text: "DANGER 🔥", font: "gothic", textColor: "#EF4444", bgColor: "#000000", neon: false, blink: true, direction: "static", speed: 5 }
+        };
+
+        // Initialize application state
+        function initApp() {
+            // Apply initial theme
+            if (state.darkMode) {
+                document.documentElement.classList.add('dark');
+                document.getElementById('sun-icon').classList.remove('hidden');
+                document.getElementById('moon-icon').classList.add('hidden');
+            } else {
+                document.documentElement.classList.remove('dark');
+                document.getElementById('sun-icon').classList.add('hidden');
+                document.getElementById('moon-icon').classList.remove('hidden');
+            }
+
+            renderAll();
+        }
+
+        // Apply state changes to DOM elements
+        function renderAll() {
+            // Text values
+            elements.previewText.textContent = state.text;
+            elements.fullscreenText.textContent = state.text;
+            elements.inputText.value = state.text;
+
+            // Render Colors
+            elements.previewLedBoard.style.backgroundColor = state.bgColor;
+            elements.previewText.style.color = state.textColor;
+            elements.fullscreenLedContainer.style.backgroundColor = state.bgColor;
+            elements.fullscreenText.style.color = state.textColor;
+
+            // Color inputs syncing
+            elements.textColorPicker.value = state.textColor;
+            elements.textColorVal.textContent = state.textColor.toUpperCase();
+            elements.bgColorPicker.value = state.bgColor;
+            elements.bgColorVal.textContent = state.bgColor.toUpperCase();
+
+            // Render Glow Effects
+            if (state.neon) {
+                const glow = `0 0 4px ${state.textColor}, 0 0 12px ${state.textColor}, 0 0 20px ${state.textColor}, 0 0 40px ${state.textColor}`;
+                elements.previewText.style.textShadow = glow;
+                elements.fullscreenText.style.textShadow = glow;
+
+                elements.btnNeonGlow.classList.remove('border-gray-200', 'dark:border-gray-800', 'text-gray-500', 'dark:text-gray-400');
+                elements.btnNeonGlow.classList.add('border-brand-mint', 'text-brand-mint', 'dark:border-brand-mint');
+                elements.neonGlowDot.className = "w-2.5 h-2.5 rounded-full bg-brand-mint shadow-[0_0_8px_#14B8A6]";
+            } else {
+                elements.previewText.style.textShadow = "none";
+                elements.fullscreenText.style.textShadow = "none";
+
+                elements.btnNeonGlow.classList.add('border-gray-200', 'dark:border-gray-800', 'text-gray-500', 'dark:text-gray-400');
+                elements.btnNeonGlow.classList.remove('border-brand-mint', 'text-brand-mint', 'dark:border-brand-mint');
+                elements.neonGlowDot.className = "w-2.5 h-2.5 rounded-full bg-gray-300 dark:bg-gray-600";
+            }
+
+            // Render Blink State
+            if (state.blink) {
+                elements.previewText.classList.add('animate-blink');
+                elements.fullscreenText.classList.add('animate-blink');
+
+                elements.btnBlink.classList.remove('border-gray-200', 'dark:border-gray-800', 'text-gray-500', 'dark:text-gray-400');
+                elements.btnBlink.classList.add('border-brand-pink', 'text-brand-pink', 'dark:border-brand-pink');
+                elements.blinkDot.className = "w-2.5 h-2.5 rounded-full bg-brand-pink shadow-[0_0_8px_#EC4899]";
+            } else {
+                elements.previewText.classList.remove('animate-blink');
+                elements.fullscreenText.classList.remove('animate-blink');
+
+                elements.btnBlink.classList.add('border-gray-200', 'dark:border-gray-800', 'text-gray-500', 'dark:text-gray-400');
+                elements.btnBlink.classList.remove('border-brand-pink', 'text-brand-pink', 'dark:border-brand-pink');
+                elements.blinkDot.className = "w-2.5 h-2.5 rounded-full bg-gray-300 dark:bg-gray-600";
+            }
+
+            // Render Fonts
+            const fontClasses = {
+                gothic: 'font-gothic',
+                myeongjo: 'font-myeongjo',
+                cute: 'font-cute',
+                neon: 'font-neon'
+            };
+            
+            // Remove previous fonts
+            Object.values(fontClasses).forEach(fClass => {
+                elements.previewText.classList.remove(fClass);
+                elements.fullscreenText.classList.remove(fClass);
+            });
+            // Apply current font
+            elements.previewText.classList.add(fontClasses[state.font]);
+            elements.fullscreenText.classList.add(fontClasses[state.font]);
+
+            // Sync Font buttons UI
+            document.querySelectorAll('.font-chip').forEach(btn => {
+                btn.className = "font-chip border-2 py-2 px-1 rounded-xl text-xs font-bold transition-all text-center focus:outline-none bg-white dark:bg-brand-carddark border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-700";
+                if (btn.id === `font-btn-${state.font}`) {
+                    btn.classList.remove('border-gray-200', 'dark:border-gray-800', 'text-gray-500', 'dark:text-gray-400');
+                    btn.classList.add('border-brand-mint', 'text-brand-mint', 'shadow-md');
+                }
+            });
+
+            // Handle Speeds & Direction Controls visibility
+            if (state.direction === 'static') {
+                elements.speedControllerWrapper.classList.add('opacity-40', 'pointer-events-none');
+            } else {
+                elements.speedControllerWrapper.classList.remove('opacity-40', 'pointer-events-none');
+            }
+
+            // Sync Speed values
+            elements.speedRange.value = state.speed;
+            elements.speedLabel.textContent = state.speed;
+
+            // Apply Scrolling Animations
+            applyMovementCSS();
+        }
+
+        // Apply smooth translations based on direction and speed
+        function applyMovementCSS() {
+            // Remove animation classes
+            elements.previewText.classList.remove('animate-marquee-left', 'animate-marquee-right', 'mx-auto');
+            elements.fullscreenText.classList.remove('animate-marquee-left', 'animate-marquee-right', 'mx-auto');
+            
+            // Clear inline styles applied by animation calculations previously
+            elements.previewText.style.animation = '';
+            elements.fullscreenText.style.animation = '';
+            elements.previewText.style.transform = '';
+            elements.fullscreenText.style.transform = '';
+
+            // Calculate responsive animation duration
+            // Speed scale: 1 is slow (15s duration), 10 is fast (1.5s duration)
+            const duration = (11 - state.speed) * 1.5;
+
+            // Apply variables
+            elements.previewText.style.setProperty('--speed-duration', `${duration}s`);
+            elements.fullscreenText.style.setProperty('--speed-duration', `${duration}s`);
+
+            if (state.direction === 'left') {
+                elements.previewText.classList.add('animate-marquee-left');
+                elements.fullscreenText.classList.add('animate-marquee-left');
+                elements.statusBadge.textContent = "FLOWING LEFT";
+                elements.statusBadge.className = "text-brand-mint font-semibold";
+            } else if (state.direction === 'right') {
+                elements.previewText.classList.add('animate-marquee-right');
+                elements.fullscreenText.classList.add('animate-marquee-right');
+                elements.statusBadge.textContent = "FLOWING RIGHT";
+                elements.statusBadge.className = "text-brand-pink font-semibold";
+            } else {
+                // Static style: Center alignment
+                elements.previewText.style.transform = 'none';
+                elements.previewText.classList.add('mx-auto', 'text-center');
+                
+                elements.fullscreenText.style.transform = 'none';
+                elements.fullscreenText.classList.add('mx-auto', 'text-center');
+                
+                // Absolute center full screen text when static
+                elements.fullscreenText.style.position = 'relative';
+                elements.fullscreenText.style.left = '0';
+                elements.fullscreenText.style.right = '0';
+
+                elements.statusBadge.textContent = "STATIC DISPLAY";
+                elements.statusBadge.className = "text-gray-400 font-semibold";
+            }
+        }
+
+        // Input Actions
+        function updateText(val) {
+            state.text = val || " ";
+            elements.previewText.textContent = state.text;
+            elements.fullscreenText.textContent = state.text;
+            applyMovementCSS();
+        }
+
+        function clearInput() {
+            state.text = "";
+            elements.inputText.value = "";
+            elements.inputText.focus();
+            renderAll();
+        }
+
+        function setFont(fontName) {
+            state.font = fontName;
+            renderAll();
+        }
+
+        function setTextColor(color) {
+            state.textColor = color;
+            renderAll();
+        }
+
+        function setBgColor(color) {
+            state.bgColor = color;
+            renderAll();
+        }
+
+        function toggleNeonGlow() {
+            state.neon = !state.neon;
+            renderAll();
+        }
+
+        function toggleBlink() {
+            state.blink = !state.blink;
+            renderAll();
+        }
+
+        function setDirection(dir) {
+            state.direction = dir;
+            
+            // Sync Segmented Control Selector Visuals
+            document.querySelectorAll('.dir-btn').forEach(btn => {
+                btn.className = "dir-btn flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-center focus:outline-none text-gray-500 dark:text-gray-400 hover:text-gray-700";
+            });
+
+            const activeBtn = document.getElementById(`dir-btn-${dir}`);
+            activeBtn.className = "dir-btn flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-center focus:outline-none bg-white dark:bg-brand-carddark text-gray-900 dark:text-white shadow";
+
+            renderAll();
+        }
+
+        function setSpeed(val) {
+            state.speed = parseInt(val);
+            elements.speedLabel.textContent = val;
+            applyMovementCSS();
+        }
+
+        function applyPreset(presetKey) {
+            const preset = PRESETS[presetKey];
+            if (preset) {
+                state.text = preset.text;
+                state.font = preset.font;
+                state.textColor = preset.textColor;
+                state.bgColor = preset.bgColor;
+                state.neon = preset.neon;
+                state.blink = preset.blink;
+                state.direction = preset.direction;
+                state.speed = preset.speed;
+
+                // Sync Direction Picker UI manual updates
+                setDirection(preset.direction);
+                renderAll();
+            }
+        }
+
+        // Toggle Dark/Light Mode
+        function toggleTheme() {
+            state.darkMode = !state.darkMode;
+            const sunIcon = document.getElementById('sun-icon');
+            const moonIcon = document.getElementById('moon-icon');
+
+            if (state.darkMode) {
+                document.documentElement.classList.add('dark');
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+            } else {
+                document.documentElement.classList.remove('dark');
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+            }
+        }
+
+        // ================= FULLSCREEN OPERATIONS =================
+        function startFullscreen() {
+            // Update Fullscreen layer view elements
+            elements.fullscreenText.textContent = state.text;
+            
+            // Show Fullscreen container
+            elements.fullscreenLayer.classList.remove('hidden');
+
+            // Set size of text in fullscreen proportionally to screen height (e.g., standard viewport fit)
+            // Determine text size based on orientation
+            adjustFullscreenTypography();
+
+            // Request HTML5 standard fullscreen API if available
+            const docEl = document.documentElement;
+            if (docEl.requestFullscreen) {
+                docEl.requestFullscreen().catch(() => {});
+            } else if (docEl.webkitRequestFullscreen) {
+                docEl.webkitRequestFullscreen();
+            }
+
+            // Start animations inside fullscreen
+            applyMovementCSS();
+
+            // Display exit floating HUD indicator
+            elements.exitHelper.classList.remove('opacity-0');
+            elements.exitHelper.classList.add('opacity-100');
+            
+            // Soft-fade exit helper out after 3 seconds
+            setTimeout(() => {
+                elements.exitHelper.classList.remove('opacity-100');
+                elements.exitHelper.classList.add('opacity-0');
+            }, 3000);
+
+            // Set orientation locked landscape if supported by client device
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').catch(() => {
+                    // Fallback handled automatically via portrait CSS rotations
+                });
+            }
+
+            // Event listener to tap to exit
+            elements.fullscreenLayer.onclick = exitFullscreen;
+        }
+
+        function exitFullscreen() {
+            // Dismiss fullscreen browser frame
+            if (document.exitFullscreen) {
+                document.exitFullscreen().catch(() => {});
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            }
+
+            // Unlock screen orientation if previously locked
+            if (screen.orientation && screen.orientation.unlock) {
+                screen.orientation.unlock();
+            }
+
+            // Hide UI Layers
+            elements.fullscreenLayer.classList.add('hidden');
+
+            // Reapply normal preview display movement speed
+            applyMovementCSS();
+        }
+
+        // Adaptive typography scale calculation for fullscreen
+        function adjustFullscreenTypography() {
+            const isLandscape = window.innerWidth > window.innerHeight;
+            
+            // Adjust font size dynamically inside fullscreen
+            if (isLandscape) {
+                // Wide Landscape aspect: make text massive (e.g. 50% of viewport height)
+                elements.fullscreenText.style.fontSize = '30vh';
+                elements.fullscreenLedContainer.className = "w-full h-full flex items-center justify-center overflow-hidden";
+            } else {
+                // Portrait aspect: Force rotate landscape simulation using CSS transitions
+                elements.fullscreenText.style.fontSize = '30vw';
+                elements.fullscreenLedContainer.className = "w-full h-full flex items-center justify-center overflow-hidden landscape-force";
+            }
+        }
+
+        // Listen for screen layout shifts
+        window.addEventListener('resize', () => {
+            if (!elements.fullscreenLayer.classList.contains('hidden')) {
+                adjustFullscreenTypography();
+                applyMovementCSS();
+            }
+        });
+
+        // Initialize App on load
+        window.onload = initApp;
+    </script>
+</body>
+</html>
